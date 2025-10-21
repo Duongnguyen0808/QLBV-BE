@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::content}, 'Cập nhật Chuyên khoa')}">
+
+<div th:fragment="content">
+    <h2 class="mb-4">Cập nhật chuyên khoa cho Bác sĩ</h2>
+    <h4 th:text="${doctor.user.fullName}"></h4>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <form th:action="@{/admin/doctors/{id}/edit(id=${doctor.id})}"
+                  th:object="${updateRequest}" method="post">
+
+                <div class="mb-3">
+                    <label for="specialty" class="form-label">Chọn chuyên khoa mới</label>
+                    <select th:field="*{specialtyId}" id="specialty" class="form-select" required>
+                        <option value="">-- Chọn một chuyên khoa --</option>
+                        <option th:each="spec : ${allSpecialties}"
+                                th:value="${spec.id}"
+                                th:text="${spec.name}"
+                                th:selected="${spec.id == doctor.specialty.id}"></option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Cập nhật</button>
+                <a th:href="@{/admin/doctors}" class="btn btn-secondary">Hủy</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::content}, 'Tạo Bệnh án')}">
+
+<div th:fragment="content">
+    <h2 class="mb-4">Tạo Bệnh án</h2>
+
+    <div class="card mb-4">
+        <div class="card-header">Thông tin Lịch hẹn</div>
+        <div class="card-body">
+            <p><strong>Bệnh nhân:</strong> <span th:text="${appointment.patient.fullName}"></span></p>
+            <p><strong>Thời gian khám:</strong> <span th:text="${#temporals.format(appointment.appointmentDateTime, 'HH:mm dd-MM-yyyy')}"></span></p>
+            <p><strong>Ghi chú của bệnh nhân:</strong> <span th:text="${appointment.notes}"></span></p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form th:action="@{/doctor/appointments/{id}/record/create(id=${appointment.id})}"
+                  th:object="${medicalRecordRequest}" method="post">
+
+                <div class="mb-3">
+                    <label for="symptoms" class="form-label"><strong>Triệu chứng</strong></label>
+                    <textarea th:field="*{symptoms}" id="symptoms" class="form-control" rows="2"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="vitalSigns" class="form-label"><strong>Dấu hiệu sinh tồn</strong></label>
+                    <input type="text" th:field="*{vitalSigns}" id="vitalSigns" class="form-control">
+                </div>
+
+                <div class="mb-3">
+                    <label for="diagnosis" class="form-label"><strong>Chẩn đoán của Bác sĩ</strong></label>
+                    <textarea th:field="*{diagnosis}" id="diagnosis" class="form-control" rows="3" required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="testResults" class="form-label"><strong>Kết quả xét nghiệm</strong></label>
+                    <textarea th:field="*{testResults}" id="testResults" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="prescription" class="form-label"><strong>Đơn thuốc</strong></label>
+                    <textarea th:field="*{prescription}" id="prescription" class="form-control" rows="5"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="notes" class="form-label"><strong>Ghi chú thêm</strong></label>
+                    <textarea th:field="*{notes}" id="notes" class="form-control" rows="2"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Lưu Bệnh án</button>
+                <a th:href="@{/doctor/appointments}" class="btn btn-secondary">Hủy</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::content}, 'Danh sách Bệnh nhân')}">
+
+<div th:fragment="content">
+    <h2 class="mb-4">Danh sách Bệnh nhân của tôi</h2>
+    <div th:if="${#lists.isEmpty(patients)}" class="alert alert-info">
+        Bạn chưa có bệnh nhân nào.
+    </div>
+    <table class="table table-striped table-hover" th:unless="${#lists.isEmpty(patients)}">
+        <thead class="table-dark">
+        <tr>
+            <th>ID Bệnh nhân</th>
+            <th>Họ và Tên</th>
+            <th>Email</th>
+            <th>Hành động</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="patient : ${patients}">
+            <td th:text="${patient.id}"></td>
+            <td th:text="${patient.fullName}"></td>
+            <td th:text="${patient.email}"></td>
+            <td>
+                <a th:href="@{/doctor/patients/{id}/history(id=${patient.id})}" class="btn btn-sm btn-info">Xem Lịch sử khám</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</html>

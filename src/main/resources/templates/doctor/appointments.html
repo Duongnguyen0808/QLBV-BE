@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::content}, 'Lịch hẹn của tôi')}">
+
+<div th:fragment="content">
+    <h2 class="mb-4">Danh sách lịch hẹn của tôi</h2>
+    <div th:if="${#lists.isEmpty(appointments)}" class="alert alert-info">
+        Bạn không có lịch hẹn nào.
+    </div>
+    <table class="table table-striped table-hover" th:unless="${#lists.isEmpty(appointments)}">
+        <thead class="table-dark">
+        <tr>
+            <th>ID Lịch hẹn</th>
+            <th>Bệnh nhân</th>
+            <th>Thời gian hẹn</th>
+            <th>Trạng thái</th>
+            <th>Hành động</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="appt : ${appointments}">
+            <td th:text="${appt.id}"></td>
+            <td th:text="${appt.patient.fullName}"></td>
+            <td th:text="${#temporals.format(appt.appointmentDateTime, 'HH:mm dd-MM-yyyy')}"></td>
+            <td>
+                <span th:switch="${appt.status.name()}">
+                    <span th:case="'PENDING'" class="badge text-bg-warning">Chờ xác nhận</span>
+                    <span th:case="'CONFIRMED'" class="badge text-bg-primary">Đã xác nhận</span>
+                    <span th:case="'COMPLETED'" class="badge text-bg-success">Đã hoàn thành</span>
+                    <span th:case="'CANCELLED'" class="badge text-bg-danger">Đã hủy</span>
+                </span>
+            </td>
+            <td>
+                <a th:href="@{/doctor/appointments/{id}(id=${appt.id})}" class="btn btn-sm btn-info">Chi tiết</a>
+
+                <form th:if="${appt.status.name() == 'PENDING'}"
+                      th:action="@{/doctor/appointments/{id}/confirm(id=${appt.id})}"
+                      method="post" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-success">Xác nhận</button>
+                </form>
+
+                <a th:href="@{/doctor/appointments/{id}/record/create(id=${appt.id})}"
+                   class="btn btn-sm btn-primary"
+                   th:if="${appt.status.name() == 'CONFIRMED'}">Tạo bệnh án</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+</html>

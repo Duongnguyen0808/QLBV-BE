@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::content}, 'Tạo Hồ Sơ Bác Sĩ')}">
+
+    <div th:fragment="content">
+        <h2 class="mb-4">Tạo hồ sơ Bác sĩ mới</h2>
+        <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+        <div class="card">
+            <div class="card-body">
+                <form th:action="@{/admin/doctors/create}" th:object="${newDoctorRequest}" method="post">
+                    <div class="mb-3">
+                        <label for="user" class="form-label">Chọn tài khoản User</label>
+                        <select th:field="*{userId}" id="user" class="form-select" required>
+                            <option value="">-- Chọn một User --</option>
+                            <option th:each="user : ${availableUsers}"
+                                    th:value="${user.id}"
+                                    th:text="${user.fullName} + ' (' + ${user.email} + ')'"></option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="specialty" class="form-label">Gán vào chuyên khoa</label>
+                        <select th:field="*{specialtyId}" id="specialty" class="form-select" required>
+                            <option value="">-- Chọn một chuyên khoa --</option>
+                            <option th:each="spec : ${specialties}"
+                                    th:value="${spec.id}"
+                                    th:text="${spec.name}"></option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Tạo hồ sơ</button>
+                    <a th:href="@{/admin/doctors}" class="btn btn-secondary">Hủy</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</html>

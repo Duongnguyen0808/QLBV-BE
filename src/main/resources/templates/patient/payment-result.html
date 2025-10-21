@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html
+  lang="vi"
+  xmlns:th="http://www.thymeleaf.org"
+  th:replace="~{fragments/layout :: layout(~{::content}, 'Kết quả Thanh toán')}"
+>
+  <div th:fragment="content">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card text-center shadow-lg">
+          <div
+            class="card-header"
+            th:classappend="${transaction.status.name() == 'SUCCESS' ? 'bg-success text-white' : 'bg-danger text-white'}"
+          >
+            <h3 th:if="${transaction.status.name() == 'SUCCESS'}">
+              <i class="fas fa-check-circle"></i> Thanh toán Thành công!
+            </h3>
+            <h3 th:if="${transaction.status.name() != 'SUCCESS'}">
+              <i class="fas fa-times-circle"></i> Thanh toán Thất bại
+            </h3>
+          </div>
+          <div class="card-body">
+            <p class="fs-5">
+              <strong>Mã giao dịch:</strong>
+              <span th:text="${transaction.id}"></span>
+            </p>
+            <p class="fs-5">
+              <strong>Trạng thái:</strong>
+              <span th:text="${transaction.status.name()}"></span>
+            </p>
+            <p class="fs-5">
+              <strong>Số tiền:</strong>
+              <span
+                th:text="${#numbers.formatDecimal(transaction.amount, 0, 'COMMA', 0, 'POINT')} + ' VND'"
+              ></span>
+            </p>
+            <p
+              th:if="${transaction.transactionCode != null}"
+              class="text-muted"
+            >
+              Mã tham chiếu:
+              <span th:text="${transaction.transactionCode}"></span>
+            </p>
+
+            <hr />
+
+            <p
+              th:if="${transaction.status.name() == 'SUCCESS'}"
+              class="alert alert-info"
+            >
+              Lịch hẹn của bạn đã được **XÁC NHẬN** và sẵn sàng. Vui lòng đến
+              đúng giờ.
+            </p>
+            <p
+              th:if="${transaction.status.name() != 'SUCCESS'}"
+              class="alert alert-warning"
+            >
+              Vui lòng quay lại tab Lịch hẹn để thử thanh toán lại hoặc liên hệ
+              bệnh viện để được hỗ trợ.
+            </p>
+
+            <a th:href="@{/}" class="btn btn-primary mt-3">Về trang chủ</a>
+            <a th:href="@{/doctor/appointments}" class="btn btn-secondary mt-3"
+              >Xem Lịch hẹn của tôi</a
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</html>

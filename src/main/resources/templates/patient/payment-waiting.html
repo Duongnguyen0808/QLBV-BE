@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html
+  lang="vi"
+  xmlns:th="http://www.thymeleaf.org"
+  th:replace="~{fragments/layout :: layout(~{::content}, 'Chờ Thanh toán QR')}"
+>
+  <div th:fragment="content">
+    <h2 class="mb-4">
+      Thanh toán Lịch hẹn #<span th:text="${appointment.id}"></span>
+    </h2>
+
+    <div class="card text-center shadow-lg">
+      <div class="card-header bg-warning text-dark">
+        <strong
+          ><i class="fas fa-qrcode"></i> Vui lòng quét mã QR để hoàn tất thanh
+          toán</strong
+        >
+      </div>
+      <div class="card-body">
+        <h4 class="card-title text-primary">
+          Số tiền:
+          <span
+            th:text="${#numbers.formatDecimal(transaction.amount, 0, 'COMMA', 0, 'POINT')} + ' VND'"
+            >150.000 VND</span
+          >
+        </h4>
+
+        <div id="qr-display" class="my-4">
+          <img
+            th:src="@{'https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=' + ${quicklinkUrl}}"
+            alt="QR Code"
+            class="img-fluid border p-2"
+          />
+          <p class="text-muted mt-2">
+            Mã giao dịch nội bộ:
+            <strong th:text="${transaction.id}">12345</strong>
+          </p>
+        </div>
+
+        <div id="status-message" class="alert alert-info" role="alert">
+          Đang chờ xác nhận thanh toán...
+        </div>
+
+        <a th:href="@{/doctor/appointments}" class="btn btn-secondary mt-3"
+          >Hủy giao dịch</a
+        >
+      </div>
+    </div>
+
+    <script th:inline="javascript">
+      /*<![CDATA[*/
+      const transactionId = [[${transactionId}]];
+      const apiStatusUrl = '/api/payments/' + transactionId + '/status';
+      const resultUrl = '/patient/payments/result/' + transactionId;
+      const statusMessage = document.getElementById('status-message');
+      let pollingInterval;
+
+      function checkPaymentStatus() {
+          // Sử dụng fetch API để gọi liên tục (polling) kiểm tra trạng thái giao dịch
+          fetch(apiStatusUrl, {
+              method: 'GET',
+              headers: {
+                  'Content-Type': 'application/json',
+                  // Cần thiết lập header Authorization nếu bạn dùng JWT cho API này
+              }
+          })
+          .then(response => response.json())
+          .then(data => {
+              const status = data.status;
+
+              if (status === 'SUCCESS') {
+                  // Thanh toán thành công: Dừng polling và chuyển hướng
+                  clearInterval(pollingInterval);
+                  statusMessage.className = 'alert alert-success';
+                  statusMessage.innerHTML = 'Thanh toán **THÀNH CÔNG**! Đang chuyển hướng...';
+                  setTimeout(() => {
+                      window.location.href = resultUrl;
+                  }, 2000);
+              } else if (status === 'FAILED') {
+                  // Thanh toán thất bại: Dừng polling
+                  clearInterval(pollingInterval);
+                  statusMessage.className = 'alert alert-danger';
+                  statusMessage.innerHTML = 'Thanh toán **THẤT BẠI**. Vui lòng thử lại hoặc hủy giao dịch.';
+              } else if (status === 'PENDING') {
+                  // Vẫn đang chờ
+                  statusMessage.innerHTML = 'Đang chờ xác nhận thanh toán...';
+              }
+          })
+          .catch(error => {
+              console.error('Lỗi khi polling trạng thái:', error);
+          });
+      }
+
+      // Bắt đầu polling mỗi 3 giây
+      pollingInterval = setInterval(checkPaymentStatus, 3000);
+
+      // Ngăn chặn polling khi người dùng rời khỏi trang
+      window.addEventListener('beforeunload', function() {
+          clearInterval(pollingInterval);
+      });
+
+      // Chạy lần đầu ngay lập tức
+      checkPaymentStatus();
+      /*]]>*/
+    </script>
+  </div>
+</html>

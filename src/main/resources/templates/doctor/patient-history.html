@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: layout(~{::content}, 'Lịch sử Khám bệnh')}">
+
+<div th:fragment="content">
+    <h2 class="mb-4">Lịch sử Khám bệnh của: <span th:text="${patient.fullName}"></span></h2>
+
+    <div th:if="${#lists.isEmpty(records)}" class="alert alert-info">
+        Bệnh nhân này chưa có lịch sử khám bệnh.
+    </div>
+
+    <div class="accordion" id="recordsAccordion" th:unless="${#lists.isEmpty(records)}">
+        <div th:each="record, iter : ${records}" class="accordion-item">
+            <h2 class="accordion-header" th:id="'heading' + ${iter.index}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        th:data-bs-target="'#collapse' + ${iter.index}" aria-expanded="false"
+                        th:aria-controls="'collapse' + ${iter.index}">
+                    <strong>Ngày khám: <span th:text="${#temporals.format(record.appointment.appointmentDateTime, 'dd-MM-yyyy HH:mm')}"></span></strong>
+                    - Bác sĩ: <span th:text="${record.appointment.doctor.user.fullName}"></span>
+                </button>
+            </h2>
+            <div th:id="'collapse' + ${iter.index}" class="accordion-collapse collapse"
+                 th:aria-labelledby="'heading' + ${iter.index}" data-bs-parent="#recordsAccordion">
+                <div class="accordion-body">
+                    <p><strong>Chẩn đoán:</strong> <span th:text="${record.diagnosis}"></span></p>
+                    <p><strong>Triệu chứng:</strong> <span th:text="${record.symptoms}"></span></p>
+                    <p><strong>Đơn thuốc:</strong></p>
+                    <pre><code th:text="${record.prescription}"></code></pre>
+                    <hr>
+                    <p><strong>Ghi chú thêm:</strong> <span th:text="${record.notes}"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <a th:href="@{/doctor/patients}" class="btn btn-secondary mt-4">Quay lại Danh sách Bệnh nhân</a>
+</div>
+</html>
