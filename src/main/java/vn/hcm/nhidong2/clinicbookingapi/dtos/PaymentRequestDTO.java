@@ -2,13 +2,13 @@ package vn.hcm.nhidong2.clinicbookingapi.dtos;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor; // THÊM DÒNG NÀY
+import lombok.AllArgsConstructor; 
 import lombok.Data;
-import lombok.NoArgsConstructor; // THÊM DÒNG NÀY
+import lombok.NoArgsConstructor; 
 
 @Data
-@AllArgsConstructor // THÊM DÒNG NÀY
-@NoArgsConstructor // THÊM DÒNG NÀY (để đảm bảo khả năng deserialization từ JSON)
+@AllArgsConstructor 
+@NoArgsConstructor 
 @Schema(description = "Yêu cầu khởi tạo thanh toán cho một lịch hẹn")
 public class PaymentRequestDTO {
 

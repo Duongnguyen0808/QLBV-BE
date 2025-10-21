@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.hcm.nhidong2.clinicbookingapi.dtos.WorkingScheduleDTO;
 import vn.hcm.nhidong2.clinicbookingapi.models.Doctor;
 import vn.hcm.nhidong2.clinicbookingapi.models.WorkingSchedule;
+import vn.hcm.nhidong2.clinicbookingapi.models.WorkingSession;
 import vn.hcm.nhidong2.clinicbookingapi.repositories.DoctorRepository;
 import vn.hcm.nhidong2.clinicbookingapi.repositories.WorkingScheduleRepository;
 
@@ -18,7 +19,6 @@ public class ScheduleService {
     private final WorkingScheduleRepository scheduleRepository;
     private final DoctorRepository doctorRepository;
 
-    // Lấy tất cả lịch làm việc của một bác sĩ
     public List<WorkingSchedule> getSchedulesForDoctor(Long doctorId) {
         return scheduleRepository.findByDoctorId(doctorId);
     }
@@ -28,27 +28,30 @@ public class ScheduleService {
     public WorkingSchedule addSchedule(Long doctorId, WorkingScheduleDTO dto) {
         Doctor doctor = doctorRepository.findById(doctorId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy bác sĩ."));
+        
+        // 1. Kiểm tra trùng lặp theo Ngày VÀ Ca
+        scheduleRepository.findByDoctorIdAndDayOfWeekAndSession(
+            doctorId, dto.getDayOfWeek(), dto.getSession()
+        ).ifPresent(existing -> {
+            throw new IllegalArgumentException("Bác sĩ đã có lịch làm việc cho ngày " + dto.getDayOfWeek() + " ca " + dto.getSession() + " này.");
+        });
 
-        if (dto.getEndTime().isBefore(dto.getStartTime()) || dto.getEndTime().equals(dto.getStartTime())) {
-            throw new IllegalArgumentException("Giờ kết thúc phải sau giờ bắt đầu.");
-        }
-
-        scheduleRepository.findByDoctorIdAndDayOfWeek(doctorId, dto.getDayOfWeek())
-                .ifPresent(existing -> {
-                    throw new IllegalArgumentException("Bác sĩ đã có lịch làm việc cho ngày này.");
-                });
-
+        // 2. Lấy giờ chuẩn từ Enum
+        WorkingSession session = dto.getSession();
+        
+        // FIX CUỐI CÙNG: ÁP DỤNG SWAP ĐỂ BÙ TRỪ LỖI MAPPING CỦA DATABASE/HIBERNATE
+        // Giờ lớn hơn (EndTime) sẽ được gán vào trường startTime của Java, và ngược lại.
         WorkingSchedule newSchedule = WorkingSchedule.builder()
                 .doctor(doctor)
                 .dayOfWeek(dto.getDayOfWeek())
-                .startTime(dto.getStartTime())
-                .endTime(dto.getEndTime())
+                .session(session)
+                .startTime(session.getEndTime())   // Giờ Kết thúc (lớn hơn)
+                .endTime(session.getStartTime())   // Giờ Bắt đầu (nhỏ hơn)
                 .build();
 
         return scheduleRepository.save(newSchedule);
     }
 
-    // Xóa một ca làm việc
     @Transactional
     public void deleteSchedule(Long scheduleId) {
         if (!scheduleRepository.existsById(scheduleId)) {

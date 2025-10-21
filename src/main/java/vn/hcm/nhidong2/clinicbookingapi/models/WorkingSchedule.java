@@ -29,6 +29,10 @@ public class WorkingSchedule {
     @Column(name = "day_of_week", nullable = false)
     private DayOfWeek dayOfWeek;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "working_session", nullable = false)
+    private WorkingSession session;
+
     @Column(name = "start_time", nullable = false)
     private LocalTime startTime;
 

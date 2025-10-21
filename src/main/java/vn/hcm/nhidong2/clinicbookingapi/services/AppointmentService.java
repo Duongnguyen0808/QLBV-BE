@@ -70,29 +70,34 @@ public class AppointmentService {
                 throw new IllegalStateException("Chuyên khoa này hiện không có bác sĩ nào.");
             }
 
-            // Lấy thông tin ngày giờ từ request
-            ZonedDateTime hospitalTime = requestDTO.getAppointmentDateTime().atZoneSameInstant(HOSPITAL_ZONE_ID);
-            DayOfWeek requestedDay = hospitalTime.getDayOfWeek();
-            LocalTime requestedTime = hospitalTime.toLocalTime();
-
-            // Lọc và tìm bác sĩ phù hợp
+            // Lọc và tìm bác sĩ phù hợp (Logic này vẫn giữ nguyên, dùng WorkingSchedule cũ)
+            // *LƯU Ý: Nếu muốn dùng Ca (Sáng/Chiều) cho logic tự động chọn bác sĩ, cần cập nhật toàn bộ logic lọc ở đây
             assignedDoctor = doctorsInSpecialty.stream()
                     .filter(doctor -> {
-                        // Kiểm tra xem bác sĩ có lịch làm việc vào ngày này không
-                        Optional<WorkingSchedule> scheduleOpt = workingScheduleRepository.findByDoctorIdAndDayOfWeek(doctor.getId(), requestedDay);
-                        if (scheduleOpt.isEmpty()) {
+                        ZonedDateTime hospitalTime = requestDTO.getAppointmentDateTime().atZoneSameInstant(HOSPITAL_ZONE_ID);
+                        DayOfWeek requestedDay = hospitalTime.getDayOfWeek();
+                        LocalTime requestedTime = hospitalTime.toLocalTime();
+
+                        // TÌM TẤT CẢ CA LÀM VIỆC CỦA BÁC SĨ TRONG NGÀY ĐÓ
+                        List<WorkingSchedule> schedules = workingScheduleRepository.findByDoctorId(doctor.getId()).stream()
+                                .filter(s -> s.getDayOfWeek() == requestedDay)
+                                .collect(Collectors.toList());
+
+                        if (schedules.isEmpty()) {
                             return false;
                         }
-                        WorkingSchedule schedule = scheduleOpt.get();
 
-                        // Kiểm tra xem giờ hẹn có nằm trong ca làm việc không
-                        boolean isInWorkingHours = !requestedTime.isBefore(schedule.getStartTime()) &&
-                                !requestedTime.plusMinutes(duration).isAfter(schedule.getEndTime());
-                        if (!isInWorkingHours) {
-                            return false; // Bỏ qua nếu giờ hẹn ngoài ca làm việc
+                        // Kiểm tra xem giờ hẹn có nằm trong BẤT KỲ ca làm việc nào không
+                        boolean isInAnyWorkingHours = schedules.stream().anyMatch(schedule ->
+                            !requestedTime.isBefore(schedule.getStartTime()) &&
+                            !requestedTime.plusMinutes(duration).isAfter(schedule.getEndTime())
+                        );
+
+                        if (!isInAnyWorkingHours) {
+                            return false;
                         }
 
-                        // Kiểm tra xem bác sĩ có bị trùng lịch hẹn khác không, với thời lượng động
+                        // Kiểm tra xem bác sĩ có bị trùng lịch hẹn khác không
                         return isDoctorAvailable(doctor.getId(), requestDTO.getAppointmentDateTime(), duration);
                     })
                     .findFirst()
@@ -290,27 +295,54 @@ public class AppointmentService {
         }
     }
 
+    // THAY ĐỔI LỚN: Kiểm tra lịch làm việc theo TẤT CẢ các ca làm việc trong ngày (WorkingSchedule)
     private void validateAppointmentTimeWithSchedule(Doctor doctor, OffsetDateTime requestedTime) {
         ZonedDateTime hospitalTime = requestedTime.atZoneSameInstant(HOSPITAL_ZONE_ID);
         DayOfWeek dayOfWeek = hospitalTime.getDayOfWeek();
-        LocalTime time = hospitalTime.toLocalTime();
+        LocalTime requestedTimeLocal = hospitalTime.toLocalTime();
+        int duration = 30; // Giả định thời lượng là 30 phút để kiểm tra slot cuối
 
-        // Kiểm tra thời gian đặt lịch phải trong tương lai
+        // 1. Kiểm tra thời gian đặt lịch phải sau thời gian hiện tại
         ZonedDateTime nowInHospitalZone = ZonedDateTime.now(HOSPITAL_ZONE_ID);
         if (hospitalTime.isBefore(nowInHospitalZone.plusHours(MINIMUM_LEAD_TIME_HOURS))) {
             throw new IllegalArgumentException("Thời gian đặt lịch phải sau thời gian hiện tại ít nhất " + MINIMUM_LEAD_TIME_HOURS + " giờ.");
         }
 
-        // Tìm lịch làm việc của bác sĩ vào ngày được yêu cầu
-        WorkingSchedule schedule = workingScheduleRepository.findByDoctorIdAndDayOfWeek(doctor.getId(), dayOfWeek)
-                .orElseThrow(() -> new IllegalArgumentException("Bác sĩ " + doctor.getUser().getFullName() + " không có lịch làm việc vào ngày " + dayOfWeek + "."));
+        // 2. TÌM TẤT CẢ các ca làm việc (WorkingSchedule) của bác sĩ trong ngày đó
+        List<WorkingSchedule> schedules = workingScheduleRepository.findByDoctorId(doctor.getId()).stream()
+                .filter(s -> s.getDayOfWeek() == dayOfWeek)
+                .collect(Collectors.toList());
 
-        // Kiểm tra xem thời gian bắt đầu yêu cầu có nằm trong ca làm việc không
-        if (time.isBefore(schedule.getStartTime()) || time.isAfter(schedule.getEndTime())) {
+        if (schedules.isEmpty()) {
+            throw new IllegalArgumentException("Bác sĩ " + doctor.getUser().getFullName() + " không có lịch làm việc vào ngày " + dayOfWeek + ".");
+        }
+        
+        // 3. Kiểm tra xem thời gian hẹn có NẰM TRONG BẤT KỲ ca nào không
+        boolean isInWorkingHours = schedules.stream().anyMatch(schedule -> {
+            // Check nếu giờ bắt đầu của lịch hẹn nằm trong ca làm việc
+            boolean startIsIn = !requestedTimeLocal.isBefore(schedule.getStartTime()) && 
+                                !requestedTimeLocal.isAfter(schedule.getEndTime());
+            
+            // Check nếu giờ kết thúc của lịch hẹn (sau duration) nằm trong ca làm việc
+            LocalTime endTimePlusDuration = requestedTimeLocal.plusMinutes(duration);
+            boolean endIsIn = !endTimePlusDuration.isBefore(schedule.getStartTime()) &&
+                              !endTimePlusDuration.isAfter(schedule.getEndTime());
+            
+            // Slot hợp lệ nếu START nằm trong ca và END (sau duration) cũng nằm trong ca hoặc trùng với EndTime của ca.
+            return startIsIn && !endTimePlusDuration.isAfter(schedule.getEndTime());
+        });
+
+        if (!isInWorkingHours) {
+            String scheduleInfo = schedules.stream()
+                .map(s -> String.format("%s - %s", s.getStartTime(), s.getEndTime()))
+                .collect(Collectors.joining(", "));
+            
             throw new IllegalArgumentException(
-                    String.format("Bác sĩ chỉ làm việc từ %s đến %s vào ngày này.", schedule.getStartTime(), schedule.getEndTime())
+                    String.format("Thời gian hẹn không nằm trong bất kỳ ca làm việc nào của bác sĩ vào ngày này. Lịch làm việc: [%s]", scheduleInfo)
             );
         }
+        
+        // *Không cần return vì logic đã hoàn thành
     }
 
     // Lấy thông tin một lịch hẹn theo ID và xác thực quyền của bác sĩ.
