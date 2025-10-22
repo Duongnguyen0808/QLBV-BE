@@ -9,7 +9,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import vn.hcm.nhidong2.clinicbookingapi.dtos.PaymentRequestDTO;
 import vn.hcm.nhidong2.clinicbookingapi.dtos.PaymentResponseDTO;
@@ -36,7 +35,6 @@ public class PaymentController {
             @ApiResponse(responseCode = "403", description = "Không có quyền thanh toán cho lịch hẹn này")
     })
     @PostMapping("/create-request")
-    @PreAuthorize("hasAuthority('ROLE_PATIENT')")
     public ResponseEntity<?> createPaymentRequest(@Valid @RequestBody PaymentRequestDTO requestDTO) {
         try {
             PaymentResponseDTO response = paymentService.createPaymentRequest(requestDTO);
@@ -56,10 +54,7 @@ public class PaymentController {
             @RequestParam("status") String status, // SUCCESS or FAILED
             @RequestParam(value = "transactionCode", required = false) String transactionCode
     ) {
-        if (transactionCode == null) {
-            transactionCode = UUID.randomUUID().toString();
-        }
-
+        // KHÔNG CẦN TỰ TẠO UUID NẾU LÀ NULL NỮA. SERVICE SẼ XỬ LÝ.
         try {
             String result = paymentService.handlePaymentCallback(transactionId, status, transactionCode);
             return ResponseEntity.ok(result);

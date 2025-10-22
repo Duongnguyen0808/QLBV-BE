@@ -39,14 +39,14 @@ public class ScheduleService {
         // 2. Lấy giờ chuẩn từ Enum
         WorkingSession session = dto.getSession();
         
-        // FIX CUỐI CÙNG: ÁP DỤNG SWAP ĐỂ BÙ TRỪ LỖI MAPPING CỦA DATABASE/HIBERNATE
-        // Giờ lớn hơn (EndTime) sẽ được gán vào trường startTime của Java, và ngược lại.
+        // SỬA LỖI: LƯU ĐÚNG THỨ TỰ start/end time. 
+        // Giờ BẮT ĐẦU (nhỏ hơn) vào startTime, Giờ KẾT THÚC (lớn hơn) vào endTime.
         WorkingSchedule newSchedule = WorkingSchedule.builder()
                 .doctor(doctor)
                 .dayOfWeek(dto.getDayOfWeek())
                 .session(session)
-                .startTime(session.getEndTime())   // Giờ Kết thúc (lớn hơn)
-                .endTime(session.getStartTime())   // Giờ Bắt đầu (nhỏ hơn)
+                .startTime(session.getStartTime())   // Giờ Bắt đầu (đúng)
+                .endTime(session.getEndTime())   // Giờ Kết thúc (đúng)
                 .build();
 
         return scheduleRepository.save(newSchedule);

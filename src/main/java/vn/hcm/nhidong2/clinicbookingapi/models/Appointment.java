@@ -31,8 +31,8 @@ public class Appointment {
     @Column(name = "appointment_datetime", nullable = false)
     private OffsetDateTime appointmentDateTime;
 
-    @Column(name = "duration_minutes", nullable = false)
-    private int duration;
+    @Column(name = "duration", nullable = false) // ĐÃ SỬA: Dùng tên cột là 'duration'
+    private int duration; // Giữ nguyên tên trường Java
 
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;

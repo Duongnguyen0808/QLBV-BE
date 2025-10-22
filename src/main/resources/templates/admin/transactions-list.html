@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html
+  lang="vi"
+  xmlns:th="http://www.thymeleaf.org"
+  th:replace="~{fragments/layout :: layout(~{::content}, 'Quản lý Thanh toán')}"
+>
+  <div th:fragment="content">
+    <h2 class="mb-4">Quản lý Thanh toán (Mô phỏng IPN)</h2>
+
+    <div
+      th:if="${successMessage}"
+      class="alert alert-success"
+      th:text="${successMessage}"
+    ></div>
+    <div
+      th:if="${errorMessage}"
+      class="alert alert-danger"
+      th:text="${errorMessage}"
+    ></div>
+
+    <div class="card mb-4 bg-light">
+      <div class="card-body">
+        <h5 class="card-title">Tra soát Tự động (Mô phỏng Ngân hàng)</h5>
+        <p>
+          Nhấn nút này để mô phỏng hệ thống Ngân hàng quét tất cả các giao dịch
+          đang chờ và gửi tín hiệu thành công về (Auto Callback).
+        </p>
+        <form
+          th:action="@{/admin/payments/scan-bank-transactions}"
+          method="post"
+        >
+          <button type="submit" class="btn btn-warning">
+            <span th:if="${pendingCount > 0}"
+              >Tra soát và Tự động Xác nhận
+            </span>
+            <span th:unless="${pendingCount > 0}">Kiểm tra trạng thái (</span>
+            <span th:text="${pendingCount}"></span>
+            <span
+              th:text="${pendingCount > 0 ? ' giao dịch đang chờ)' : 'giao dịch đang chờ)'}"
+            ></span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <h4 class="mb-3">Danh sách Giao dịch Đang chờ và Đã xác nhận</h4>
+    <p class="text-info">
+      Chức năng này dùng để mô phỏng tín hiệu "Thanh toán thành công" mà cổng
+      thanh toán phải gửi về (IPN/Callback).
+    </p>
+
+    <div th:if="${#lists.isEmpty(transactions)}" class="alert alert-info">
+      Không có giao dịch nào đang chờ hoặc đã xác nhận.
+    </div>
+
+    <table
+      class="table table-striped table-hover"
+      th:unless="${#lists.isEmpty(transactions)}"
+    >
+      <thead class="table-dark">
+        <tr>
+          <th>ID Giao dịch</th>
+          <th>ID Lịch hẹn</th>
+          <th>Bệnh nhân</th>
+          <th>Số tiền</th>
+          <th>Phương thức</th>
+          <th>Trạng thái</th>
+          <th>Hành động (Mô phỏng)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="txn : ${transactions}">
+          <td th:text="${txn.id}"></td>
+          <td th:text="${txn.appointment.id}"></td>
+          <td th:text="${txn.appointment.patient.fullName}"></td>
+          <td
+            th:text="${#numbers.formatDecimal(txn.amount, 0, 'COMMA', 0, 'POINT')} + ' VND'"
+          ></td>
+          <td th:text="${txn.paymentMethod}"></td>
+
+          <td>
+            <span th:switch="${txn.status.name()}">
+              <span th:case="'PENDING'" class="badge bg-warning"
+                >Chờ Xác nhận</span
+              >
+              <span th:case="'SUCCESS'" class="badge bg-success"
+                >Đã Thanh toán</span
+              >
+              <span th:case="'FAILED'" class="badge bg-danger">Thất bại</span>
+              <span
+                th:case="*"
+                class="badge bg-secondary"
+                th:text="${txn.status}"
+              ></span>
+            </span>
+          </td>
+
+          <td>
+            <div th:if="${txn.status.name() == 'PENDING'}">
+              <form
+                th:action="@{/admin/payments/{id}/confirm-success(id=${txn.id})}"
+                method="post"
+                onsubmit="return confirm('Xác nhận giao dịch này thành công? Điều này sẽ cập nhật trạng thái lịch hẹn.')"
+              >
+                <button type="submit" class="btn btn-sm btn-success">
+                  Xác nhận Thành công
+                </button>
+              </form>
+            </div>
+            <div th:unless="${txn.status.name() == 'PENDING'}">
+              <span
+                th:text="${txn.status.name() == 'SUCCESS' ? 'Đã xử lý' : ''}"
+                class="text-muted"
+              ></span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</html>

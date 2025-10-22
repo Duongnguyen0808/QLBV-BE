@@ -13,6 +13,7 @@ import vn.hcm.nhidong2.clinicbookingapi.repositories.AppointmentRepository;
 import vn.hcm.nhidong2.clinicbookingapi.repositories.DoctorRepository;
 import vn.hcm.nhidong2.clinicbookingapi.repositories.SpecialtyRepository;
 import vn.hcm.nhidong2.clinicbookingapi.repositories.WorkingScheduleRepository;
+import vn.hcm.nhidong2.clinicbookingapi.repositories.TransactionRepository; // ĐÃ THÊM
 
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -32,13 +33,15 @@ public class AppointmentService {
     private final SpecialtyRepository specialtyRepository;
     private final AuthenticationService authenticationService;
     private final WorkingScheduleRepository workingScheduleRepository;
+    private final TransactionRepository transactionRepository; // ĐÃ THÊM
 
     private static final ZoneId HOSPITAL_ZONE_ID = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private static final long MINIMUM_LEAD_TIME_HOURS = 1;
     private static final long MINIMUM_CANCELLATION_LEAD_TIME_HOURS = 24;
     
-    private static final Long DEFAULT_APPOINTMENT_FEE = 150000L; // Phí mặc định
+    // Phí mặc định đã được cập nhật
+    private static final Long DEFAULT_APPOINTMENT_FEE = 5000L; 
 
     @Transactional
     public AppointmentResponseDTO createAppointment(AppointmentRequestDTO requestDTO) {
@@ -59,7 +62,7 @@ public class AppointmentService {
                 throw new IllegalArgumentException("Bác sĩ này không thuộc chuyên khoa đã chọn.");
             }
 
-            validateAppointmentTimeWithSchedule(doctor, requestDTO.getAppointmentDateTime());
+            validateAppointmentTimeWithSchedule(doctor, requestDTO.getAppointmentDateTime(), duration);
             // Gọi checkAppointmentOverlap với thời lượng động
             checkAppointmentOverlap(doctor.getId(), requestDTO.getAppointmentDateTime(), duration);
             assignedDoctor = doctor;
@@ -71,7 +74,6 @@ public class AppointmentService {
             }
 
             // Lọc và tìm bác sĩ phù hợp (Logic này vẫn giữ nguyên, dùng WorkingSchedule cũ)
-            // *LƯU Ý: Nếu muốn dùng Ca (Sáng/Chiều) cho logic tự động chọn bác sĩ, cần cập nhật toàn bộ logic lọc ở đây
             assignedDoctor = doctorsInSpecialty.stream()
                     .filter(doctor -> {
                         ZonedDateTime hospitalTime = requestDTO.getAppointmentDateTime().atZoneSameInstant(HOSPITAL_ZONE_ID);
@@ -111,7 +113,7 @@ public class AppointmentService {
                 .notes(requestDTO.getNotes())
                 .status(AppointmentStatus.PAID_PENDING) // SỬA: ĐẶT TRẠNG THÁI LÀ CHỜ THANH TOÁN
                 .duration(duration)
-                .amount(DEFAULT_APPOINTMENT_FEE) // THÊM PHÍ MẶC ĐỊNH
+                .amount(DEFAULT_APPOINTMENT_FEE) // Gán phí mặc định MỚI (5000L)
                 .build();
 
         Appointment savedAppointment = appointmentRepository.save(appointment);
@@ -148,7 +150,7 @@ public class AppointmentService {
             throw new AccessDeniedException("Bạn không có quyền chỉnh sửa lịch hẹn này.");
         }
 
-        validateAppointmentTimeWithSchedule(appointment.getDoctor(), updateDTO.getNewAppointmentDateTime());
+        validateAppointmentTimeWithSchedule(appointment.getDoctor(), updateDTO.getNewAppointmentDateTime(), appointment.getDuration());
         // Gọi checkAppointmentOverlap với thời lượng của chính lịch hẹn đó
         checkAppointmentOverlap(appointment.getDoctor().getId(), updateDTO.getNewAppointmentDateTime(), appointment.getDuration());
         appointment.setAppointmentDateTime(updateDTO.getNewAppointmentDateTime());
@@ -230,10 +232,16 @@ public class AppointmentService {
         if (appointment.getStatus() == AppointmentStatus.COMPLETED || appointment.getStatus() == AppointmentStatus.CANCELLED) {
             throw new IllegalStateException("Không thể hủy lịch hẹn đã hoàn thành hoặc đã được hủy trước đó.");
         }
-        appointment.setStatus(AppointmentStatus.CANCELLED);
         
-        // TODO: Nếu trạng thái là PAID_PENDING hoặc CONFIRMED (đã thanh toán), cần kích hoạt cơ chế hoàn tiền ở đây.
-
+        // CẬP NHẬT: Hủy giao dịch liên quan nếu đang ở trạng thái PENDING hoặc FAILED
+        transactionRepository.findByAppointmentId(appointmentId)
+            .filter(t -> t.getStatus() == PaymentStatus.PENDING || t.getStatus() == PaymentStatus.FAILED)
+            .ifPresent(transaction -> {
+                transaction.setStatus(PaymentStatus.CANCELLED);
+                transactionRepository.save(transaction);
+            });
+            
+        appointment.setStatus(AppointmentStatus.CANCELLED);
         Appointment cancelledAppointment = appointmentRepository.save(appointment);
 
         return AppointmentResponseDTO.fromAppointment(cancelledAppointment);
@@ -277,7 +285,7 @@ public class AppointmentService {
         // Kiểm tra xung đột với từng lịch hẹn đã có
         for (Appointment existingAppointment : appointmentsOnDay) {
             OffsetDateTime existingStart = existingAppointment.getAppointmentDateTime();
-            OffsetDateTime existingEnd = existingStart.plusMinutes(existingAppointment.getDuration());
+            OffsetDateTime existingEnd = existingStart.plusMinutes(existingAppointment.getDuration()); 
 
             // Xung đột xảy ra nếu:
             // (StartA < EndB) and (EndA > StartB)
@@ -296,11 +304,10 @@ public class AppointmentService {
     }
 
     // THAY ĐỔI LỚN: Kiểm tra lịch làm việc theo TẤT CẢ các ca làm việc trong ngày (WorkingSchedule)
-    private void validateAppointmentTimeWithSchedule(Doctor doctor, OffsetDateTime requestedTime) {
+    private void validateAppointmentTimeWithSchedule(Doctor doctor, OffsetDateTime requestedTime, int duration) {
         ZonedDateTime hospitalTime = requestedTime.atZoneSameInstant(HOSPITAL_ZONE_ID);
         DayOfWeek dayOfWeek = hospitalTime.getDayOfWeek();
         LocalTime requestedTimeLocal = hospitalTime.toLocalTime();
-        int duration = 30; // Giả định thời lượng là 30 phút để kiểm tra slot cuối
 
         // 1. Kiểm tra thời gian đặt lịch phải sau thời gian hiện tại
         ZonedDateTime nowInHospitalZone = ZonedDateTime.now(HOSPITAL_ZONE_ID);
