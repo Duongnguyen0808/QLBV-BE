@@ -13,7 +13,7 @@ import vn.hcm.nhidong2.clinicbookingapi.repositories.AppointmentRepository;
 import vn.hcm.nhidong2.clinicbookingapi.repositories.DoctorRepository;
 import vn.hcm.nhidong2.clinicbookingapi.repositories.SpecialtyRepository;
 import vn.hcm.nhidong2.clinicbookingapi.repositories.WorkingScheduleRepository;
-import vn.hcm.nhidong2.clinicbookingapi.repositories.TransactionRepository; // ĐÃ THÊM
+import vn.hcm.nhidong2.clinicbookingapi.repositories.TransactionRepository; 
 
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -33,12 +33,13 @@ public class AppointmentService {
     private final SpecialtyRepository specialtyRepository;
     private final AuthenticationService authenticationService;
     private final WorkingScheduleRepository workingScheduleRepository;
-    private final TransactionRepository transactionRepository; // ĐÃ THÊM
+    private final TransactionRepository transactionRepository; 
 
     private static final ZoneId HOSPITAL_ZONE_ID = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private static final long MINIMUM_LEAD_TIME_HOURS = 1;
-    private static final long MINIMUM_CANCELLATION_LEAD_TIME_HOURS = 24;
+    // SỬA HẰNG SỐ NÀY TỪ 24 THÀNH 6
+    private static final long MINIMUM_CANCELLATION_LEAD_TIME_HOURS = 6; 
     
     // Phí mặc định đã được cập nhật
     private static final Long DEFAULT_APPOINTMENT_FEE = 5000L; 
@@ -225,6 +226,7 @@ public class AppointmentService {
             long hoursUntilAppointment = ChronoUnit.HOURS.between(now, appointment.getAppointmentDateTime());
 
             if (hoursUntilAppointment < MINIMUM_CANCELLATION_LEAD_TIME_HOURS) {
+                // SỬA: Cập nhật thông báo lỗi cho 6 giờ
                 throw new IllegalStateException("Không thể hủy lịch hẹn trong vòng " + MINIMUM_CANCELLATION_LEAD_TIME_HOURS + " giờ trước thời điểm khám.");
             }
         }

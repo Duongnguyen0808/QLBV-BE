@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository;
 import vn.hcm.nhidong2.clinicbookingapi.models.MedicalRecord;
 
 import java.util.List;
+import java.util.Optional; // <-- THÊM IMPORT NÀY
 
 @Repository
 public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Long> {
@@ -14,4 +15,7 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, Lo
 
     // Kiểm tra xem một lịch hẹn đã có bệnh án hay chưa
     boolean existsByAppointmentId(Long appointmentId);
+    
+    // <-- THÊM KHAI BÁO PHƯƠNG THỨC NÀY ĐỂ FIX LỖI 
+    Optional<MedicalRecord> findByAppointment_Id(Long appointmentId);
 }

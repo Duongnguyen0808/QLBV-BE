@@ -1,48 +1,95 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{fragments/layout :: layout(~{::content}, 'Chi tiết Lịch hẹn')}">
-
-<div th:fragment="content">
-    <h2 class="mb-4">Chi tiết Lịch hẹn #<span th:text="${appointment.id}"></span></h2>
+<html
+  lang="vi"
+  xmlns:th="http://www.thymeleaf.org"
+  th:replace="~{fragments/layout :: layout(~{::content}, 'Chi tiết Lịch hẹn')}"
+>
+  <div th:fragment="content">
+    <h2 class="mb-4">
+      Chi tiết Lịch hẹn #<span th:text="${appointment.id}"></span>
+    </h2>
 
     <div class="card mb-4">
-        <div class="card-header">Thông tin Lịch hẹn</div>
-        <div class="card-body">
-            <p><strong>Bệnh nhân:</strong> <span th:text="${appointment.patient.fullName}"></span></p>
-            <p><strong>Thời gian:</strong> <span th:text="${#temporals.format(appointment.appointmentDateTime, 'HH:mm dd-MM-yyyy')}"></span></p>
-            <p><strong>Trạng thái:</strong> <span th:text="${appointment.status}"></span></p>
-            <p><strong>Ghi chú của bệnh nhân:</strong> <span th:text="${appointment.notes}"></span></p>
-        </div>
+      <div class="card-header">Thông tin Lịch hẹn</div>
+      <div class="card-body">
+        <p>
+          <strong>Bệnh nhân:</strong>
+          <span th:text="${appointment.patient.fullName}"></span>
+        </p>
+        <p>
+          <strong>Thời gian:</strong>
+          <span th:text="${formattedTime}">HH:mm dd-MM-yyyy</span>
+        </p>
+        <p>
+          <strong>Trạng thái:</strong>
+          <span th:text="${translatedStatus}"></span>
+        </p>
+        <p>
+          <strong>Ghi chú của bệnh nhân:</strong>
+          <span th:text="${appointment.notes}"></span>
+        </p>
+      </div>
     </div>
 
     <div th:if="${appointment.medicalRecord != null}" class="card">
-        <div class="card-header bg-success text-white">Thông tin Bệnh án</div>
-        <div class="card-body">
-            <h5 class="card-title">Triệu chứng</h5>
-            <p class="card-text bg-light p-3 rounded" th:text="${appointment.medicalRecord.symptoms}"></p>
+      <div class="card-header bg-success text-white">Thông tin Bệnh án</div>
+      <div class="card-body">
+        <h5 class="card-title">Triệu chứng</h5>
+        <p
+          class="card-text bg-light p-3 rounded"
+          th:text="${appointment.medicalRecord.symptoms}"
+        ></p>
 
-            <h5 class="card-title mt-4">Dấu hiệu sinh tồn</h5>
-            <p class="card-text bg-light p-3 rounded" th:text="${appointment.medicalRecord.vitalSigns}"></p>
+        <h5 class="card-title mt-4">Dấu hiệu sinh tồn</h5>
+        <p
+          class="card-text bg-light p-3 rounded"
+          th:text="${appointment.medicalRecord.vitalSigns}"
+        ></p>
 
-            <h5 class="card-title mt-4">Chẩn đoán</h5>
-            <p class="card-text bg-light p-3 rounded" th:text="${appointment.medicalRecord.diagnosis}"></p>
+        <h5 class="card-title mt-4">Chẩn đoán</h5>
+        <p
+          class="card-text bg-light p-3 rounded"
+          th:text="${appointment.medicalRecord.diagnosis}"
+        ></p>
 
-            <h5 class="card-title mt-4">Kết quả xét nghiệm</h5>
-            <p class="card-text bg-light p-3 rounded" th:text="${appointment.medicalRecord.testResults}"></p>
+        <h5 class="card-title mt-4">Kết quả xét nghiệm</h5>
+        <p
+          class="card-text bg-light p-3 rounded"
+          th:text="${appointment.medicalRecord.testResults}"
+        ></p>
 
-            <h5 class="card-title mt-4">Đơn thuốc</h5>
-            <p class="card-text bg-light p-3 rounded" th:text="${appointment.medicalRecord.prescription}"></p>
+        <h5 class="card-title mt-4">Đơn thuốc</h5>
+        <p
+          class="card-text bg-light p-3 rounded"
+          th:text="${appointment.medicalRecord.prescription}"
+        ></p>
 
-            <h5 class="card-title mt-4">Ghi chú thêm</h5>
-            <p class="card-text bg-light p-3 rounded" th:text="${appointment.medicalRecord.notes}"></p>
-        </div>
+        <h5 class="card-title mt-4">Ghi chú thêm</h5>
+        <p
+          class="card-text bg-light p-3 rounded"
+          th:text="${appointment.medicalRecord.notes}"
+        ></p>
+      </div>
     </div>
 
-    <div th:if="${appointment.medicalRecord == null}" class="alert alert-warning">
-        Lịch hẹn này chưa có bệnh án.
+    <div
+      th:if="${appointment.medicalRecord == null}"
+      class="alert alert-warning"
+    >
+      Lịch hẹn này chưa có bệnh án.
     </div>
 
-    <a th:href="@{/doctor/appointments}" class="btn btn-secondary mt-4">Quay lại danh sách</a>
-</div>
+    <a
+      th:if="${appointment.medicalRecord != null}"
+      th:href="@{/doctor/appointments/{id}/download-pdf(id=${appointment.id})}"
+      class="btn btn-primary mt-4"
+      target="_blank"
+    >
+      <i class="fas fa-file-pdf"></i> Xuất Bệnh án PDF
+    </a>
 
+    <a th:href="@{/doctor/appointments}" class="btn btn-secondary mt-4 ms-3"
+      >Quay lại danh sách</a
+    >
+  </div>
 </html>

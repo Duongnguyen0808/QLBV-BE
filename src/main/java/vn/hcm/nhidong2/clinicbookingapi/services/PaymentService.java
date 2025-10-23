@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.scheduling.annotation.Scheduled; // <-- THÊM DÒNG NÀY
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +35,7 @@ public class PaymentService {
     private final AuthenticationService authenticationService;
 
     private static final Long APPOINTMENT_FEE = 10000L; 
-    // ĐÃ SỬA: Thời gian hết hạn là 1 phút để dễ test
+    // Giữ nguyên 1 phút để test tính năng tự động hủy 
     private static final long TRANSACTION_EXPIRY_MINUTES = 1; 
     
     // --- CẤU HÌNH VIETQR QUICK LINK ---
@@ -143,7 +144,16 @@ public class PaymentService {
             }
             transactionRepository.save(txn);
         }
+        log.info("Đã tự động hủy {} giao dịch quá hạn.", expiredTransactions.size());
         return expiredTransactions.size();
+    }
+
+
+    // THÊM: Tác vụ lập lịch để tự động hủy các giao dịch đã hết hạn
+    @Scheduled(fixedRateString = "30000") // Chạy mỗi 30 giây (30000ms)
+    @Transactional
+    public void scheduledCancelExpiredTransactions() {
+        cancelExpiredPendingTransactions();
     }
 
 
