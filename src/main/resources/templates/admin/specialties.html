@@ -1,47 +1,75 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{fragments/layout :: layout(~{::content}, 'Quản lý Chuyên Khoa')}">
+<html
+  lang="vi"
+  xmlns:th="http://www.thymeleaf.org"
+  th:replace="~{fragments/layout :: layout(~{::content}, 'Quản lý Chuyên Khoa')}"
+>
+  <div th:fragment="content">
+    <h2 class="mb-4">Quản lý Chuyên khoa</h2>
 
-    <div th:fragment="content">
-        <h2 class="mb-4">Quản lý Chuyên khoa</h2>
+    <div
+      th:if="${successMessage}"
+      class="alert alert-success"
+      th:text="${successMessage}"
+    ></div>
+    <div
+      th:if="${errorMessage}"
+      class="alert alert-danger"
+      th:text="${errorMessage}"
+    ></div>
 
-        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
-        <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
-
-        <div class="row">
-            <div class="col-md-8">
-                <h4>Danh sách chuyên khoa</h4>
-                <table class="table table-striped table-hover">
-                    <thead class="table-dark">
-                    <tr><th>ID</th><th>Tên Chuyên khoa</th><th>Hành động</th></tr>
-                    </thead>
-                    <tbody>
-                    <tr th:each="spec : ${specialties}">
-                        <td th:text="${spec.id}"></td>
-                        <td th:text="${spec.name}"></td>
-                        <td>
-                            <form th:action="@{/admin/specialties/{id}/delete(id=${spec.id})}" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa?')">
-                                <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
-                            </form>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="col-md-4">
-                <h4>Tạo chuyên khoa mới</h4>
-                <div class="card">
-                    <div class="card-body">
-                        <form th:action="@{/admin/specialties/create}" th:object="${newSpecialty}" method="post">
-                            <div class="mb-3">
-                                <label for="name" class="form-label">Tên chuyên khoa</label>
-                                <input type="text" th:field="*{name}" id="name" class="form-control" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Tạo mới</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
+    <div class="row">
+      <div class="col-md-8">
+        <h4>Danh sách chuyên khoa</h4>
+        <table class="table table-striped table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>Tên Chuyên khoa</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="spec : ${specialties}">
+              <td th:text="${spec.name}"></td>
+              <td>
+                <form
+                  th:action="@{/admin/specialties/{id}/delete(id=${spec.id})}"
+                  method="post"
+                  onsubmit="return confirm('Bạn có chắc chắn muốn xóa?')"
+                >
+                  <button type="submit" class="btn btn-sm btn-danger">
+                    Xóa
+                  </button>
+                </form>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="col-md-4">
+        <h4>Tạo chuyên khoa mới</h4>
+        <div class="card">
+          <div class="card-body">
+            <form
+              th:action="@{/admin/specialties/create}"
+              th:object="${newSpecialty}"
+              method="post"
+            >
+              <div class="mb-3">
+                <label for="name" class="form-label">Tên chuyên khoa</label>
+                <input
+                  type="text"
+                  th:field="*{name}"
+                  id="name"
+                  class="form-control"
+                  required
+                />
+              </div>
+              <button type="submit" class="btn btn-primary">Tạo mới</button>
+            </form>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
 </html>

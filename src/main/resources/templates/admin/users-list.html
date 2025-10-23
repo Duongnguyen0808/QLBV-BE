@@ -1,36 +1,67 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{fragments/layout :: layout(~{::content}, 'Quản lý Người dùng')}">
-
-<div th:fragment="content">
-  <h2 class="mb-4">Danh sách người dùng</h2>
-  <table class="table table-striped table-hover">
-    <thead class="table-dark">
-    <tr>
-      <th>ID</th>
-      <th>Họ và Tên</th>
-      <th>Email</th>
-      <th>Vai trò</th>
-      <th>Trạng thái</th>
-      <th>Hành động</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="user : ${users}">
-      <td th:text="${user.id}"></td>
-      <td th:text="${user.fullName}"></td>
-      <td th:text="${user.email}"></td>
-      <td><span class="badge bg-primary" th:text="${user.role}"></span></td>
-      <td>
-        <span th:if="${user.locked}" class="badge bg-danger">Đã khóa</span>
-        <span th:unless="${user.locked}" class="badge bg-success">Hoạt động</span>
-      </td>
-      <td>
-        <a th:href="@{/admin/users/{id}(id=${user.id})}" class="btn btn-sm btn-info">Chi tiết</a>
-      </td>
-    </tr>
-    </tbody>
-  </table>
-</div>
-
+<html
+  lang="vi"
+  xmlns:th="http://www.thymeleaf.org"
+  th:replace="~{fragments/layout :: layout(~{::content}, 'Quản lý Người dùng')}"
+>
+  <div th:fragment="content">
+    <h2 class="mb-4">Danh sách người dùng</h2>
+    <table class="table table-striped table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th>Họ và Tên</th>
+          <th>Email</th>
+          <th>Vai trò</th>
+          <th>Trạng thái</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="user : ${users}">
+          <td th:text="${user.fullName}"></td>
+          <td th:text="${user.email}"></td>
+          <td>
+            <span th:switch="${user.role}">
+              <span
+                th:case="'ADMIN'"
+                class="badge bg-danger"
+                th:text="${user.translatedRole}"
+              ></span>
+              <span
+                th:case="'DOCTOR'"
+                class="badge bg-primary"
+                th:text="${user.translatedRole}"
+              ></span>
+              <span
+                th:case="'PATIENT'"
+                class="badge"
+                style="background-color: #20c997"
+                th:text="${user.translatedRole}"
+              ></span>
+              <span
+                th:case="*"
+                class="badge bg-secondary"
+                th:text="${user.translatedRole}"
+              ></span>
+            </span>
+          </td>
+          <td>
+            <span th:if="${user.isLocked}" class="badge bg-danger"
+              >Đã khóa</span
+            >
+            <span th:unless="${user.isLocked}" class="badge bg-success"
+              >Hoạt động</span
+            >
+          </td>
+          <td>
+            <a
+              th:href="@{/admin/users/{id}(id=${user.id})}"
+              class="btn btn-sm btn-info"
+              >Chi tiết</a
+            >
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </html>

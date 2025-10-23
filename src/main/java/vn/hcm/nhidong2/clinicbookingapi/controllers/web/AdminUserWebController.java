@@ -12,6 +12,8 @@ import vn.hcm.nhidong2.clinicbookingapi.models.User;
 import vn.hcm.nhidong2.clinicbookingapi.services.AdminService;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 
 @Controller
@@ -20,15 +22,35 @@ import java.util.stream.Collectors;
 public class AdminUserWebController {
 
     private final AdminService adminService;
+    
+    // Ánh xạ vai trò sang tiếng Việt
+    private static final Map<Role, String> ROLE_TRANSLATIONS = Map.of(
+        Role.ADMIN, "Quản trị viên",
+        Role.DOCTOR, "Bác sĩ",
+        Role.PATIENT, "Bệnh nhân"
+    );
 
     @GetMapping
     public String showUsersListPage(Model model) {
         List<User> users = adminService.getAllUsers();
-        List<UserResponseDTO> userDTOs = users.stream()
-                .map(UserResponseDTO::fromUser)
+        
+        // Tạo danh sách DTO đã được định dạng
+        List<Map<String, Object>> formattedUsers = users.stream()
+                .map(user -> {
+                    Map<String, Object> map = new HashMap<>();
+                    // BỎ ID khỏi Map nếu bạn không muốn hiển thị
+                    map.put("fullName", user.getFullName());
+                    map.put("email", user.getEmail());
+                    map.put("role", user.getRole().name()); // Giữ tên Role gốc để phân loại màu sắc trong View
+                    map.put("translatedRole", ROLE_TRANSLATIONS.getOrDefault(user.getRole(), user.getRole().name()));
+                    map.put("isLocked", user.isLocked());
+                    map.put("id", user.getId()); // Giữ ID cho nút Chi tiết
+                    return map;
+                })
                 .collect(Collectors.toList());
 
-        model.addAttribute("users", userDTOs);
+
+        model.addAttribute("users", formattedUsers);
         model.addAttribute("contentView", "admin/users-list");
         return "fragments/layout";
     }
@@ -38,8 +60,10 @@ public class AdminUserWebController {
         User user = adminService.getUserById(id);
 
         model.addAttribute("user", UserResponseDTO.fromUser(user));
+        // THÊM: Truyền Map dịch thuật cho View chi tiết
+        model.addAttribute("roleTranslations", ROLE_TRANSLATIONS); 
         model.addAttribute("allRoles", Role.values());
-        model.addAttribute("allSpecialties", adminService.getAllSpecialties()); // THÊM DÒNG NÀY
+        model.addAttribute("allSpecialties", adminService.getAllSpecialties()); 
         model.addAttribute("contentView", "admin/user-details");
         return "fragments/layout";
     }

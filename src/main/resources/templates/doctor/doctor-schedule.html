@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html
+  lang="vi"
+  xmlns:th="http://www.thymeleaf.org"
+  th:replace="~{fragments/layout :: layout(~{::content}, 'Lịch làm việc của tôi')}"
+>
+  <div th:fragment="content">
+    <h2 class="mb-4">
+      Lịch làm việc của Bác sĩ:
+      <span th:text="${doctor.user.fullName}"></span>
+    </h2>
+
+    <div
+      th:if="${successMessage}"
+      class="alert alert-success"
+      th:text="${successMessage}"
+    ></div>
+    <div
+      th:if="${errorMessage}"
+      class="alert alert-danger"
+      th:text="${errorMessage}"
+    ></div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <h4>Lịch làm việc hiện tại</h4>
+        <div th:if="${#lists.isEmpty(schedules)}" class="alert alert-info">
+          Bạn chưa có lịch làm việc nào được gán.
+        </div>
+        <table
+          class="table table-bordered table-sm"
+          th:unless="${#lists.isEmpty(schedules)}"
+        >
+          <thead class="table-dark">
+            <tr>
+              <th style="width: 15%">Thứ</th>
+              <th style="width: 15%">Ca làm việc</th>
+              <th style="width: 25%">Thời gian</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="sch : ${schedules}">
+              <td th:text="${dayOfWeekTranslations[sch.dayOfWeek]}"></td>
+              <td th:text="${sch.session}"></td>
+              <td
+                th:text="${#temporals.format(sch.startTime, 'HH:mm')} + ' - ' + ${#temporals.format(sch.endTime, 'HH:mm')}"
+              ></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <a th:href="@{/doctor/appointments}" class="btn btn-secondary mt-4"
+      >Quay lại Lịch hẹn</a
+    >
+  </div>
+</html>

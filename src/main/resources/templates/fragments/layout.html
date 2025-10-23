@@ -45,6 +45,11 @@
               >
             </li>
             <li class="nav-item" sec:authorize="hasRole('DOCTOR')">
+              <a class="nav-link" th:href="@{/doctor/schedules}"
+                >Lịch làm việc của tôi</a
+              >
+            </li>
+            <li class="nav-item" sec:authorize="hasRole('DOCTOR')">
               <a class="nav-link" th:href="@{/doctor/patients}"
                 >Bệnh nhân của tôi</a
               >

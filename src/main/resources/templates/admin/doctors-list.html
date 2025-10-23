@@ -1,33 +1,47 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{fragments/layout :: layout(~{::content}, 'Quản lý Bác Sĩ')}">
+<html
+  lang="vi"
+  xmlns:th="http://www.thymeleaf.org"
+  th:replace="~{fragments/layout :: layout(~{::content}, 'Quản lý Bác Sĩ')}"
+>
+  <div th:fragment="content">
+    <h2 class="mb-4">Quản lý Bác sĩ</h2>
+    <div
+      th:if="${successMessage}"
+      class="alert alert-success"
+      th:text="${successMessage}"
+    ></div>
 
-    <div th:fragment="content">
-        <h2 class="mb-4">Quản lý Bác sĩ</h2>
-        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+    <a th:href="@{/admin/doctors/create}" class="btn btn-primary mb-3"
+      >Tạo hồ sơ Bác sĩ mới</a
+    >
 
-        <a th:href="@{/admin/doctors/create}" class="btn btn-primary mb-3">Tạo hồ sơ Bác sĩ mới</a>
-
-        <table class="table table-striped table-hover">
-            <thead class="table-dark">
-            <tr>
-                <th>ID Bác sĩ</th>
-                <th>Họ và Tên</th>
-                <th>Chuyên khoa</th>
-                <th>Hành động</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="doc : ${doctors}">
-                <td th:text="${doc.doctorId}"></td>
-                <td th:text="${doc.fullName}"></td>
-                <td th:text="${doc.specialtyName}"></td>
-                <td>
-                    <a th:href="@{/admin/doctors/{id}/edit(id=${doc.doctorId})}" class="btn btn-sm btn-info">Sửa</a>
-                    <a th:href="@{/admin/doctors/{id}/schedules(id=${doc.doctorId})}" class="btn btn-sm btn-warning">Lịch làm việc</a>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
+    <table class="table table-striped table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th>Họ và Tên</th>
+          <th>Chuyên khoa</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="doc : ${doctors}">
+          <td th:text="${doc.fullName}"></td>
+          <td th:text="${doc.specialtyName}"></td>
+          <td>
+            <a
+              th:href="@{/admin/doctors/{id}/edit(id=${doc.doctorId})}"
+              class="btn btn-sm btn-info"
+              >Sửa</a
+            >
+            <a
+              th:href="@{/admin/doctors/{id}/schedules(id=${doc.doctorId})}"
+              class="btn btn-sm btn-warning"
+              >Lịch làm việc</a
+            >
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </html>
