@@ -38,6 +38,9 @@
                 >Quản lý Thanh toán</a
               >
             </li>
+            <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+              <a class="nav-link" th:href="@{/admin/reports}">Báo cáo Thống kê</a>
+            </li>
 
             <li class="nav-item" sec:authorize="hasRole('DOCTOR')">
               <a class="nav-link" th:href="@{/doctor/appointments}"

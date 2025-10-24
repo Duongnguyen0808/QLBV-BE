@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html
+        lang="vi"
+        xmlns:th="http://www.thymeleaf.org"
+        th:replace="~{fragments/layout :: layout(~{::content}, 'Báo cáo Thống kê')}"
+>
+<div th:fragment="content">
+    <h2 class="mb-4">Báo cáo Thống kê</h2>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4 class="mb-0">Thống kê Lịch hẹn theo Ngày</h4>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/admin/reports}" method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="selectedDate" class="form-label">Chọn ngày:</label>
+                    <input
+                            type="text"
+                            id="selectedDate"
+                            name="selectedDate"
+                            class="form-control datepicker"
+                            th:value="${selectedDate}"
+                    />
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary">Xem báo cáo</button>
+                </div>
+            </form>
+
+            <hr class="my-3" />
+
+            <h5 th:text="'Kết quả cho ngày: ' + ${selectedDate}"></h5>
+            <div class="row">
+                <div th:each="item : ${dailyReport}" class="col-md-3">
+                    <div class="card text-center text-bg-light shadow-sm">
+                        <div class="card-header" th:text="${item.name}">Trạng thái</div>
+                        <div class="card-body">
+                            <h3 class="card-title" th:text="${item.count}">0</h3>
+                            <p class="card-text">lịch hẹn</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Tải trọng theo Chuyên khoa (Đã khám)</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                        <tr>
+                            <th>Chuyên khoa</th>
+                            <th>Số ca đã khám</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="item : ${specialtyLoadReport}">
+                            <td th:text="${item.name}"></td>
+                            <td th:text="${item.count}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Tổng quan Trạng thái Lịch hẹn</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                        <tr>
+                            <th>Trạng thái</th>
+                            <th>Số lượng</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="item : ${statusReport}">
+                            <td th:text="${item.name}"></td>
+                            <td th:text="${item.count}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Tải trọng Bác sĩ (Tổng số ca đã khám)</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead class="table-dark">
+                <tr>
+                    <th>Tên Bác sĩ</th>
+                    <th>Chuyên khoa</th>
+                    <th>Số ca đã khám</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="item : ${doctorLoadReport}">
+                    <td th:text="${item.name}"></td>
+                    <td th:text="${item.additionalInfo}"></td>
+                    <td th:text="${item.count}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+</html>
