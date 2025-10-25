@@ -4,6 +4,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -16,6 +17,9 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
+    @Value("${spring.mail.username}")
+    private String mailFrom;
+
     @Async
     public void sendVerificationEmail(String to, String subject, String htmlBody) {
         try {
@@ -25,7 +29,7 @@ public class EmailService {
             helper.setText(htmlBody, true);
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setFrom("no-reply@nhidong2.gov.vn");
+            helper.setFrom(mailFrom); // dùng tài khoản đã cấu hình để tránh bị chặn
 
             mailSender.send(mimeMessage);
 
@@ -57,14 +61,14 @@ public class EmailService {
             helper.setText(htmlBody, true);
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setFrom("no-reply@nhidong2.gov.vn");
+            helper.setFrom(mailFrom); // dùng tài khoản SMTP cấu hình
 
             mailSender.send(mimeMessage);
 
             log.info("Appointment status email sent successfully to {}", to);
         } catch (MessagingException e) {
             log.error("Failed to send appointment status email", e);
-            // Trong thực tế, bạn có thể muốn có một cơ chế retry ở đây
+            throw new IllegalStateException("Gửi email thất bại", e);
         }
     }
 }

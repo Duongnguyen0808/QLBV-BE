@@ -92,4 +92,15 @@ public class AdminUserWebController {
         redirectAttributes.addFlashAttribute("successMessage", "Đã mở khóa tài khoản thành công!");
         return "redirect:/admin/users";
     }
+
+    @PostMapping("/{id}/delete")
+    public String deleteUser(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            adminService.deleteUser(id);
+            redirectAttributes.addFlashAttribute("successMessage", "Xóa tài khoản thành công!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi: " + e.getMessage());
+        }
+        return "redirect:/admin/users";
+    }
 }

@@ -1,7 +1,10 @@
+// BẮT BUỘC: CẦN CHẠY LẠI BACKEND SAU KHI THAY THẾ FILE NÀY
+
 package vn.hcm.nhidong2.clinicbookingapi.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +17,7 @@ import vn.hcm.nhidong2.clinicbookingapi.repositories.DoctorRepository;
 import vn.hcm.nhidong2.clinicbookingapi.repositories.SpecialtyRepository;
 import vn.hcm.nhidong2.clinicbookingapi.repositories.WorkingScheduleRepository;
 import vn.hcm.nhidong2.clinicbookingapi.repositories.TransactionRepository; 
-import vn.hcm.nhidong2.clinicbookingapi.repositories.MedicalRecordRepository; // <-- CẦN THIẾT
+import vn.hcm.nhidong2.clinicbookingapi.repositories.MedicalRecordRepository; 
 
 import java.time.*;
 import java.time.temporal.ChronoUnit;
@@ -35,19 +38,50 @@ public class AppointmentService {
  private final AuthenticationService authenticationService;
  private final WorkingScheduleRepository workingScheduleRepository;
  private final TransactionRepository transactionRepository; 
-    private final MedicalRecordRepository medicalRecordRepository; // <-- KHAI BÁO CẦN THIẾT
-
+    private final MedicalRecordRepository medicalRecordRepository; 
 
  private static final ZoneId HOSPITAL_ZONE_ID = ZoneId.of("Asia/Ho_Chi_Minh");
 
  private static final long MINIMUM_LEAD_TIME_HOURS = 1;
- // GIỮ NGUYÊN 6 GIỜ
  private static final long MINIMUM_CANCELLATION_LEAD_TIME_HOURS = 6; 
  
- // Phí mặc định đã được cập nhật
  private static final Long DEFAULT_APPOINTMENT_FEE = 5000L; 
 
-    // ĐÃ BỎ HÀM createMedicalRecord NẰM NGOÀI ĐÂY (Nó phải nằm trong MedicalRecordService)
+    // BỔ SUNG: Tác vụ lập lịch để tự động cập nhật trạng thái lịch hẹn
+    @Scheduled(fixedRate = 300000) // Chạy mỗi 5 phút (300,000 ms)
+    @Transactional
+    public void scheduledAppointmentStatusUpdate() {
+        OffsetDateTime now = OffsetDateTime.now(HOSPITAL_ZONE_ID);
+        log.info("Bắt đầu quét và cập nhật trạng thái lịch hẹn cũ tại: {}", now);
+
+        // 1. Tìm tất cả lịch hẹn CHƯA ở trạng thái COMPLETED hoặc CANCELLED
+        List<Appointment> pendingUpdates = appointmentRepository.findAll().stream()
+            .filter(a -> a.getStatus() != AppointmentStatus.COMPLETED && a.getStatus() != AppointmentStatus.CANCELLED)
+            .collect(Collectors.toList());
+
+        for (Appointment appointment : pendingUpdates) {
+            // Kiểm tra nếu lịch hẹn đã quá giờ khám
+            if (appointment.getAppointmentDateTime().isBefore(now)) {
+                
+                AppointmentStatus currentStatus = appointment.getStatus();
+
+                // YÊU CẦU MỚI: Nếu CONFIRMED và quá giờ -> Hủy (CANCELLED)
+                if (currentStatus == AppointmentStatus.CONFIRMED) {
+                    appointment.setStatus(AppointmentStatus.CANCELLED);
+                    // LƯU Ý: Nên có logic hủy giao dịch liên quan ở đây nếu bạn muốn hoàn tiền tự động qua BE
+                    appointmentRepository.save(appointment); 
+                    log.info("Cập nhật lịch hẹn ID {} từ CONFIRMED sang CANCELLED (Quá giờ theo yêu cầu).", appointment.getId());
+                } 
+                
+                // Logic cũ: Nếu PENDING/PAID_PENDING và quá giờ -> Hủy (CANCELLED)
+                else if (currentStatus == AppointmentStatus.PENDING || currentStatus == AppointmentStatus.PAID_PENDING) {
+                    appointment.setStatus(AppointmentStatus.CANCELLED);
+                    appointmentRepository.save(appointment);
+                    log.info("Cập nhật lịch hẹn ID {} từ {} sang CANCELLED (Quá giờ).", appointment.getId(), currentStatus.name());
+                }
+            }
+        }
+    }
 
  @Transactional
  public AppointmentResponseDTO createAppointment(AppointmentRequestDTO requestDTO) {
@@ -57,7 +91,6 @@ public class AppointmentService {
   .orElseThrow(() -> new IllegalArgumentException("Chuyên khoa không tồn tại."));
 
  Doctor assignedDoctor;
- // Xác định thời lượng cuộc hẹn, mặc định là 30 phút nếu không được cung cấp
  int duration = requestDTO.getDuration() != null ? requestDTO.getDuration() : 30;
 
  if (requestDTO.getDoctorId() != null) {
@@ -69,7 +102,6 @@ public class AppointmentService {
   }
 
   validateAppointmentTimeWithSchedule(doctor, requestDTO.getAppointmentDateTime(), duration);
-  // Gọi checkAppointmentOverlap với thời lượng động
   checkAppointmentOverlap(doctor.getId(), requestDTO.getAppointmentDateTime(), duration);
   assignedDoctor = doctor;
  } else {
@@ -390,4 +422,31 @@ appointment.setStatus(AppointmentStatus.PAID_PENDING); // ĐƯA VỀ CHỜ THANH
 
  return appointment;
  }
+    @Transactional
+    public void sendReminder(Long appointmentId) {
+        User currentUser = authenticationService.getCurrentAuthenticatedUser();
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy lịch hẹn."));
+
+        boolean isDoctorOfAppointment = currentUser.getRole() == Role.DOCTOR &&
+                java.util.Objects.equals(appointment.getDoctor().getUser().getId(), currentUser.getId());
+        boolean isAdmin = currentUser.getRole() == Role.ADMIN;
+        if (!isDoctorOfAppointment && !isAdmin) {
+            throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền gửi nhắc cho lịch hẹn này.");
+        }
+
+        String patientEmail = appointment.getPatient().getEmail();
+        String patientName = appointment.getPatient().getFullName();
+        String doctorName = appointment.getDoctor().getUser().getFullName();
+        String appointmentTime = appointment.getAppointmentDateTime().toString();
+
+        emailService.sendAppointmentStatusEmail(
+                patientEmail,
+                "Nhắc lịch khám",
+                patientName,
+                doctorName,
+                appointmentTime,
+                "NHẮC LỊCH"
+        );
+    }
 }

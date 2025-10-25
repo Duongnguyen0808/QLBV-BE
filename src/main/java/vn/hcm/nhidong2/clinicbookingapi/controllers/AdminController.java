@@ -105,6 +105,21 @@ public class AdminController {
         }
     }
 
+    @Operation(summary = "Xóa người dùng", description = "Chỉ Admin mới được phép xóa và không thể xóa Admin khác hoặc chính mình.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Xóa thành công"),
+            @ApiResponse(responseCode = "400", description = "Yêu cầu không hợp lệ hoặc vi phạm ràng buộc")
+    })
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+        try {
+            adminService.deleteUser(id);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
 
     // Specialty Management Endpoints
 

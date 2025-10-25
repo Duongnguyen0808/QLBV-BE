@@ -11,6 +11,7 @@ import vn.hcm.nhidong2.clinicbookingapi.models.Appointment;
 import vn.hcm.nhidong2.clinicbookingapi.models.AppointmentStatus;
 import vn.hcm.nhidong2.clinicbookingapi.services.AppointmentService;
 import vn.hcm.nhidong2.clinicbookingapi.services.MedicalRecordService;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.time.format.DateTimeFormatter;
 import java.time.OffsetDateTime;
@@ -19,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 @Controller
 @RequestMapping("/doctor/appointments") 
@@ -40,11 +42,12 @@ public class DoctorWebController {
     // Định dạng giờ (Ví dụ: 07:30 - Th 5 23/10/2025)
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm - E d/MM/yyyy");
     private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final Pattern MOBILE_UA = Pattern.compile("Android|iPhone|iPod|IEMobile|Windows Phone|BlackBerry|webOS|Opera Mini|Mobile", Pattern.CASE_INSENSITIVE);
 
 
     // SỬA LỖI: Định dạng ngày giờ và dịch trạng thái cho danh sách lịch hẹn
     @GetMapping
-    public String showMyAppointmentsPage(Model model) {
+    public String showMyAppointmentsPage(Model model, HttpServletRequest request) {
         List<AppointmentResponseDTO> appointments = appointmentService.findAppointmentsForDoctor();
         
         // Chuyển đổi danh sách DTO sang Map để thêm các giá trị đã định dạng
@@ -58,7 +61,6 @@ public class DoctorWebController {
                 String translatedStatus = STATUS_TRANSLATIONS.getOrDefault(appt.getStatus(), appt.getStatus().name());
                 
                 Map<String, Object> map = new HashMap<>();
-                // map.put("id", appt.getId()); // ID BỊ BỎ Ở VIEW NHƯNG VẪN DÙNG ID Ở HÀNH ĐỘNG
                 map.put("patientFullName", appt.getPatient().getFullName());
                 map.put("doctorName", appt.getDoctor().getFullName());
                 map.put("specialtyName", appt.getDoctor().getSpecialtyName());
@@ -70,9 +72,18 @@ public class DoctorWebController {
             })
             .collect(Collectors.toList());
 
+        String ua = request.getHeader("User-Agent");
+        boolean isMobile = isMobileUserAgent(ua);
+
         model.addAttribute("appointments", formattedAppointments); 
+        model.addAttribute("isMobile", isMobile);
         model.addAttribute("contentView", "doctor/appointments");
         return "fragments/layout";
+    }
+
+    private boolean isMobileUserAgent(String ua) {
+        if (ua == null) return false;
+        return MOBILE_UA.matcher(ua).find();
     }
 
     @GetMapping("/{id}/record/create")
@@ -121,6 +132,17 @@ public class DoctorWebController {
         } catch (Exception e) {
             return "redirect:/doctor/appointments";
         }
+    }
+
+    @PostMapping("/{id}/remind")
+    public String remindAppointment(@PathVariable("id") Long appointmentId, RedirectAttributes ra) {
+        try {
+            appointmentService.sendReminder(appointmentId);
+            ra.addFlashAttribute("successMessage", "Đã gửi nhắc lịch thành công!");
+        } catch (Exception e) {
+            ra.addFlashAttribute("errorMessage", "Lỗi: " + e.getMessage());
+        }
+        return "redirect:/doctor/appointments";
     }
 
     @PostMapping("/{id}/confirm")

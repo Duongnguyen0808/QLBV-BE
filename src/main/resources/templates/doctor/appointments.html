@@ -67,11 +67,23 @@
               method="post"
               class="d-inline"
             >
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
               <button type="submit" class="btn btn-sm btn-success">
                 Xác nhận
               </button>
             </form>
 
+            <form
+              th:if="${appt.status == 'CONFIRMED'}"
+              th:action="@{/doctor/appointments/{id}/remind(id=${appt.id})}"
+              method="post"
+              class="d-none d-md-inline"
+            >
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+              <button type="submit" class="btn btn-sm btn-danger" data-bs-toggle="tooltip" title="Gửi nhắc lịch">
+                Gửi nhắc
+              </button>
+            </form>
             <a
               th:href="@{/doctor/appointments/{id}/record/create(id=${appt.id})}"
               class="btn btn-sm btn-primary"

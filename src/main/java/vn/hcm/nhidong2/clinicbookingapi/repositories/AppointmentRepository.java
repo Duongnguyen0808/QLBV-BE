@@ -22,6 +22,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     // Tìm tất cả lịch hẹn của một bác sĩ
     List<Appointment> findByDoctorIdOrderByAppointmentDateTimeAsc(Long doctorId);
+    // Tìm tất cả lịch hẹn trong một khoảng thời gian (dùng cho báo cáo theo ngày)
+    List<Appointment> findAllByAppointmentDateTimeBetween(OffsetDateTime start, OffsetDateTime end);
 
     @Query("SELECT DISTINCT a.patient FROM Appointment a WHERE a.doctor.id = :doctorId")
     List<User> findDistinctPatientsByDoctorId(@Param("doctorId") Long doctorId);

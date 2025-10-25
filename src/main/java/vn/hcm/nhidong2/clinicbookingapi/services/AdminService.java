@@ -8,11 +8,17 @@ import vn.hcm.nhidong2.clinicbookingapi.models.Doctor;
 import vn.hcm.nhidong2.clinicbookingapi.models.Role;
 import vn.hcm.nhidong2.clinicbookingapi.models.Specialty;
 import vn.hcm.nhidong2.clinicbookingapi.models.User;
+import vn.hcm.nhidong2.clinicbookingapi.models.Appointment;
+import vn.hcm.nhidong2.clinicbookingapi.models.WorkingSchedule;
 import vn.hcm.nhidong2.clinicbookingapi.repositories.DoctorRepository;
 import vn.hcm.nhidong2.clinicbookingapi.repositories.SpecialtyRepository;
 import vn.hcm.nhidong2.clinicbookingapi.repositories.UserRepository;
+import vn.hcm.nhidong2.clinicbookingapi.repositories.AppointmentRepository;
+import vn.hcm.nhidong2.clinicbookingapi.repositories.PatientProfileRepository;
+import vn.hcm.nhidong2.clinicbookingapi.repositories.WorkingScheduleRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,6 +29,10 @@ public class AdminService {
     private final SpecialtyRepository specialtyRepository;
     private final DoctorRepository doctorRepository;
     private final AuthenticationService authenticationService;
+    // THÊM: Inject các repository cần cho xóa user
+    private final AppointmentRepository appointmentRepository;
+    private final PatientProfileRepository patientProfileRepository;
+    private final WorkingScheduleRepository workingScheduleRepository;
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
@@ -187,5 +197,53 @@ public class AdminService {
 
     public List<Doctor> findDoctorsBySpecialty(Long specialtyId) {
         return doctorRepository.findAllBySpecialtyId(specialtyId);
+    }
+
+    // ========================
+    // XÓA NGƯỜI DÙNG (ADMIN)
+    // ========================
+    @Transactional
+    public void deleteUser(Long userId) {
+        User actingAdmin = authenticationService.getCurrentAuthenticatedUser();
+        if (java.util.Objects.equals(actingAdmin.getId(), userId)) {
+            throw new IllegalArgumentException("Không thể xóa chính tài khoản Admin đang đăng nhập.");
+        }
+
+        User target = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy người dùng với ID: " + userId));
+
+        if (target.getRole() == Role.ADMIN) {
+            throw new IllegalArgumentException("Không được xóa tài khoản Admin.");
+        }
+
+        // Kiểm tra và xử lý xóa bác sĩ
+        Optional<Doctor> doctorProfile = doctorRepository.findByUser(target);
+        if (doctorProfile.isPresent()) {
+            Doctor doctor = doctorProfile.get();
+            
+            // Kiểm tra xem bác sĩ có lịch hẹn nào không
+            List<Appointment> doctorAppointments = appointmentRepository.findByDoctorIdOrderByAppointmentDateTimeAsc(doctor.getId());
+            if (!doctorAppointments.isEmpty()) {
+                throw new IllegalArgumentException("Không thể xóa bác sĩ vì vẫn còn lịch hẹn.");
+            }
+            
+            // Xóa lịch làm việc của bác sĩ
+            List<WorkingSchedule> schedules = workingScheduleRepository.findByDoctorId(doctor.getId());
+            workingScheduleRepository.deleteAll(schedules);
+            
+            // Xóa hồ sơ bác sĩ
+            doctorRepository.delete(doctor);
+        }
+
+        // Nếu là bệnh nhân và còn lịch hẹn, không cho xóa để tránh mồ côi dữ liệu
+        if (!appointmentRepository.findByPatient(target).isEmpty()) {
+            throw new IllegalArgumentException("Không thể xóa vì người dùng vẫn còn lịch hẹn.");
+        }
+
+        // Xóa hồ sơ bệnh nhân nếu tồn tại (tránh lỗi khóa ngoại)
+        patientProfileRepository.findById(userId).ifPresent(pp -> patientProfileRepository.deleteById(userId));
+
+        // Thực hiện xóa tài khoản
+        userRepository.deleteById(userId);
     }
 }

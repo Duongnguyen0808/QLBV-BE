@@ -2,10 +2,17 @@
 <html
   lang="vi"
   xmlns:th="http://www.thymeleaf.org"
+  xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
   th:replace="~{fragments/layout :: layout(~{::content}, 'Quản lý Người dùng')}"
 >
   <div th:fragment="content">
     <h2 class="mb-4">Danh sách người dùng</h2>
+
+    <!-- Hiển thị thông báo thành công -->
+    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+    <!-- Hiển thị thông báo lỗi -->
+    <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
     <table class="table table-striped table-hover">
       <thead class="table-dark">
         <tr>
@@ -59,9 +66,40 @@
               class="btn btn-sm btn-info"
               >Chi tiết</a
             >
+
+            <!-- Nút xóa tài khoản: chỉ hiển thị với ADMIN và ẩn với tài khoản ADMIN -->
+            <form
+              th:action="@{/admin/users/{id}/delete(id=${user.id})}"
+              method="post"
+              style="display: inline;"
+              sec:authorize="hasRole('ADMIN')"
+              th:if="${user.role} != 'ADMIN'"
+              onsubmit="return confirm('Bạn có chắc muốn xóa tài khoản này?')"
+            >
+              <button
+                type="submit"
+                class="btn btn-sm btn-danger ms-2"
+                data-bs-toggle="tooltip"
+                title="Xóa tài khoản"
+              >
+                Xóa
+              </button>
+            </form>
           </td>
         </tr>
       </tbody>
     </table>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Khởi tạo tooltip Bootstrap
+        const tooltipTriggerList = [].slice.call(
+          document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        );
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+          return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+      });
+    </script>
   </div>
 </html>

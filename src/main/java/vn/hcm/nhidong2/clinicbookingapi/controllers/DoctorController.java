@@ -21,6 +21,7 @@ import vn.hcm.nhidong2.clinicbookingapi.services.DoctorService;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -75,5 +76,22 @@ public class DoctorController {
     public ResponseEntity<List<AppointmentResponseDTO>> getMyAppointments() {
         List<AppointmentResponseDTO> appointments = appointmentService.findAppointmentsForDoctor();
         return ResponseEntity.ok(appointments);
+    }
+
+    @Operation(summary = "Gửi nhắc lịch cho bệnh nhân")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Đã gửi nhắc lịch thành công"),
+            @ApiResponse(responseCode = "400", description = "Lỗi xử lý yêu cầu"),
+            @ApiResponse(responseCode = "403", description = "Yêu cầu quyền DOCTOR")
+    })
+    @PostMapping("/appointments/{id}/remind")
+    @PreAuthorize("hasAuthority('ROLE_DOCTOR')")
+    public ResponseEntity<Map<String, Object>> remindAppointment(@PathVariable("id") Long appointmentId) {
+        try {
+            appointmentService.sendReminder(appointmentId);
+            return ResponseEntity.ok(Map.of("success", true, "message", "Đã gửi nhắc lịch thành công!"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Lỗi: " + e.getMessage()));
+        }
     }
 }
